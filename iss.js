@@ -12,7 +12,6 @@ const fetchMyIP = function(callback) {
       return;
     }
     callback(null, JSON.parse(body).ip);
-    return;
   })
 }
 
@@ -23,17 +22,61 @@ const fetchCoordsByIP = function (ip, callback) {
       callback(error, null)
     }
     if(response.statusCode !== 200) {
-      const msg = `Status Code ${response.statusCode} when fetching location from IP adress. Response: ${body}`;
+      const msg = `Status Code ${response.statusCode} when fetching location from IP address. Response: ${body}`;
       callback(Error(msg), null);
       return;
     }
-     let locat = callback(error, JSON.parse(body).location);
-     console.log(locat);
-     return locat;
+     callback(error, JSON.parse(body).location);
   })
+}
+
+const fetchISSFlyOverTimes = function(coords, callback) {
+   console.log(coords);
+  request(`http://api.open-notify.org/iss-pass.json?lat=${coords.latitude}&lon=${coords.longitude}`, (error, response, body) => {
+    if (error) {
+      callback(error, null)
+    }
+    if(response.statusCode !== 200) {
+      const msg = `Status Code ${response.statusCode} when fetching location from IP address. Response: ${body}`;
+      callback(Error(msg), null);
+      return;
+    }
+    callback(error, JSON.parse(body).response);
+});
+}
+
+const nextISSTimesForMyLocation = function(error, callback) {
+  if (error) {
+    return console.log("It didn't work!", error);
+  }
+  fetchMyIP((error, ip) => {
+    if (error) {
+      console.log("It didn't work!" , error);
+      return;
+    }
+    fetchCoordsByIP(ip, (error, objLocation) => {
+      if (error) {
+        console.log("There was a error!", error)
+        return;
+      }
+      let obj = {
+        latitude: objLocation.lat,
+        longitude: objLocation.lng
+      }
+      fetchISSFlyOverTimes(obj, (error, passtime) => {
+        if (error) {
+          console.log("There was a error!", error)
+          return;
+        }
+        callback(passtime);
+      })
+    })
+  });
 }
 
 module.exports = { 
   fetchMyIP,
-  fetchCoordsByIP
+  fetchCoordsByIP,
+  fetchISSFlyOverTimes,
+  nextISSTimesForMyLocation
 };
